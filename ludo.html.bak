@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset=utf-8>
+      <title>Ludo</title>
+      <style>
+        body {margin: 0; overflow: hidden}
+        canvas {width: 100%; height: 100%; overflow: hidden}
+      </style>
+    </head>
+    <body>
+      <script src="js/three.js"></script>
+	  
+	  <script id="vertexShader" type="x-shader/x-vertex">
+
+      varying vec3 v_color;
+      void main()	{
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          v_color = vec3(0.0859,0.0859,0.0859);
+      }
+    </script>
+
+    <script id="fragmentShader" type="x-shader/x-fragment">
+      uniform float u_time;
+      varying vec3 v_color;
+      void main()	{
+          gl_FragColor = vec4(v_color, 1.0);
+      }
+    </script>
+	
+	
+	
+      <script>
+       // Scene, Camera and Renderer
+        var scene = new THREE.Scene();
+        var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var renderer = new THREE.WebGLRenderer({antialias: true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x220000,1);
+        document.body.appendChild(renderer.domElement);
+		
+		
+		// Shadow Map
+		renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; 
+		
+
+        // Geometry for slots and for pieces
+        var slot_geo = new THREE.BoxGeometry(1, 1, 0.2);
+		var piece_geo =  new THREE.CylinderGeometry(0.30,0.35,0.20,15,1);
+		
+
+
+        var slots = [];
+        var pieces = [];
+        var dies = [];
+
+
+        var setPiece = false;
+		
+		
+		// Declaring Textures
+        const texture_mat_clear = new THREE.TextureLoader().load('whitebg.jpg');
+		const texture_mat_dark = new THREE.TextureLoader().load('boxbg2.jpg');
+		const texture_mat_center = new THREE.TextureLoader().load('centerbg2.jpg');
+		const texture_highlighter = new THREE.TextureLoader().load('highlightthree.png');
+		const texture_highlighter2 = new THREE.TextureLoader().load('highlightfour.jpg');
+		const texture_border = new THREE.TextureLoader().load('border.jpg');
+		const texture_piece_green = new THREE.TextureLoader().load('greenbg.jpg');
+		const texture_piece_red = new THREE.TextureLoader().load('redbg.jpg');
+		const texture_piece_blue = new THREE.TextureLoader().load('bluebg.jpg');
+		const texture_piece_yellow = new THREE.TextureLoader().load('yellowbg.jpg');
+
+		
+		
+        // Declaring Materials
+        var mat_clear = new THREE.MeshLambertMaterial({map: texture_mat_clear});
+        var mat_dark = new THREE.MeshLambertMaterial({map: texture_mat_dark});
+        var mat_center = new THREE.MeshLambertMaterial({map: texture_mat_center});
+        var mat_highlight = new THREE.MeshBasicMaterial({map : texture_highlighter});
+        var mat_highlight_dupl = new THREE.MeshBasicMaterial({map : texture_highlighter2});
+        var mat_border = new THREE.MeshLambertMaterial({map : texture_border});
+        var mat_green = new THREE.MeshLambertMaterial({ map: texture_piece_green});
+        var mat_red = new THREE.MeshLambertMaterial({map: texture_piece_red});
+        var mat_blue = new THREE.MeshLambertMaterial({map: texture_piece_blue});
+        var mat_yellow = new THREE.MeshLambertMaterial({map: texture_piece_yellow});
+        var mat_gold = new THREE.MeshLambertMaterial({color: 0xf3d802});
+		
+
+         // Implementing geometries into Co-ordinates
+        for (var i=0; i<13; i++)
+          for (var j=0; j<13; j++)
+          {
+            if ((i==6 && j>0 && j<6) || (i==5 && j==1) || (i>1 && i<4 && j>0 && j<3)) { // board - yellow
+              var slot = new THREE.Mesh(slot_geo, mat_yellow);
+			  slot.receiveShadow = true;
+              slot.color = 'y';
+              
+			 
+              if (i>1 && i<4 && j>0 && j<3){
+                var piece = new THREE.Mesh(piece_geo, mat_yellow)
+				piece.castShadow = true;
+                piece.receiveShadow = true;
+                piece.color = 'y';
+                setPiece = true;
+              }
+            }
+            else if ((i==6 && j>6 && j<12) || (i==7 && j==11) || (i>8 && i<11 && j>9 && j<12)){ // board - green
+              var slot = new THREE.Mesh(slot_geo, mat_red);
+			  slot.receiveShadow = true;
+              slot.color = 'r';
+            
+              if (i>8 && i<11 && j>9 && j<12) {
+                var piece = new THREE.Mesh(piece_geo, mat_red)
+				piece.castShadow = true;
+                piece.receiveShadow = true;				
+                piece.color = 'r';
+                setPiece = true;
+              }
+            }
+            else if ((j==6 && i>6 && i<12) || (j==5 && i==11) || (i>9 && i<12 && j>1 && j<4)){ // board - red
+              var slot = new THREE.Mesh(slot_geo, mat_green);
+			  slot.receiveShadow = true;
+              slot.color = 'g';
+          
+			  
+              if (i>9 && i<12 && j>1 && j<4){
+			    var piece = new THREE.Mesh(piece_geo, mat_green)
+				piece.castShadow = true;
+                piece.receiveShadow = true;				
+                piece.color = 'g';
+                setPiece = true;      
+              }
+            }
+            else if ((j==6 && i>0 && i<6) || (j==7 && i==1) || (i>0 && i<3 && j>8 && j<11)){ // board - blue
+              var slot = new THREE.Mesh(slot_geo, mat_blue);
+			  slot.receiveShadow = true;
+              slot.color = 'b';
+          
+
+              if (i>0 && i<3 && j>8 && j<11){
+                var piece = new THREE.Mesh(piece_geo, mat_blue)
+				piece.castShadow = true;
+                piece.receiveShadow = true;				
+                piece.color = 'b';
+                setPiece = true;
+              }
+            }		
+            else if ((i<5 && (j<5 || j>7)) || (i>7 && (j<5 || j>7))) { // board - dark
+              var slot = new THREE.Mesh(slot_geo, mat_dark);
+			  slot.receiveShadow = true;
+              slot.color = 'd';
+           
+            }
+			else if(i==6 && j==6)
+			{
+			  var slot = new THREE.Mesh(slot_geo, mat_center);
+			  
+              slot.color = 'e';
+      
+			}
+            else {
+              var slot = new THREE.Mesh(slot_geo, mat_clear); // board - clear
+			  slot.receiveShadow = true;
+              slot.color = 'c';
+        
+            }
+
+            slot.position.x = i;
+            slot.position.y = j;
+            slot.piece = null;
+            scene.add(slot);
+            slots.push(slot);
+
+            if (setPiece){
+              piece.position.x = i;
+              piece.position.y = j;
+              piece.position.z = 0.4
+              piece.rotation.x = Math.PI/2.0;
+              scene.add(piece)
+              pieces.push(piece)
+              
+              setPiece = false;
+            }
+          }
+		  
+
+        // Point of light settings
+        var light_one =  new THREE.PointLight(0xffffff, 1, 100, 2);
+		light_one.castShadow = true;
+ 
+        light_one.position.set(0, 4, 8);
+ 
+        scene.add(light_one);
+
+
+        //Board Border box 
+  
+        var board_geo1 = new THREE.BoxGeometry(15, 1, 1.3);
+        var board1 = new THREE.Mesh(board_geo1, mat_border);
+		board1.castShadow = true;
+        board1.receiveShadow = true;
+        board1.position.x = 6;
+        board1.position.y = -1;
+        board1.position.z = 0;
+		scene.add(board1);
+  
+  
+        var board_geo2 = new THREE.BoxGeometry(1, 15, 1.3);
+        var board2 = new THREE.Mesh(board_geo2, mat_border);
+		board2.castShadow = true;
+        board2.receiveShadow = true;
+        board2.position.x = -1;
+        board2.position.y = 6;
+        board2.position.z = 0;
+		scene.add(board2);  
+
+        var board_geo3 = new THREE.BoxGeometry(15, 1, 1.3);
+        var board3 = new THREE.Mesh(board_geo3, mat_border);
+		board3.castShadow = true;
+        board3.receiveShadow = true;
+        board3.position.x = 6;
+        board3.position.y = 13;
+        board3.position.z = 0;
+		scene.add(board3);
+
+        var board_geo4 = new THREE.BoxGeometry(1, 15, 1.3);
+        var board4 = new THREE.Mesh(board_geo4, mat_border);
+		board4.castShadow = true;
+        board4.receiveShadow = true;
+        board4.position.x = 13;
+        board4.position.y = 6;
+        board4.position.z = 0;
+		scene.add(board4);
+  
+  
+
+        look = new THREE.Vector3(5.5, 6.5, 0);
+
+        // RayCaster for Mouse
+        var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2(-1000,-1000);
+        var nmouse = new THREE.Vector2(-1000,-1000);
+		
+		
+        // Updating cursor position
+        function updateCursor() {
+	       var width = window.innerWidth;
+           var height = window.innerHeight;
+
+           nmouse.x = (event.clientX / width) * 2 - 1;
+           nmouse.y = - (event.clientY / height) * 2 + 1;
+           mouse.x = event.clientX -width/2;
+           mouse.y = -event.clientY + height/2;
+
+           raycaster.setFromCamera(nmouse, camera);
+        }
+
+        
+        var state = 'preselect';
+        var grab = null;
+        var turn = 'y';
+        var grab_x, grab_y;
+        var current_die_value = 6;
+
+
+        // Designing dice
+        var floor_geo = new THREE.BoxGeometry(2, 2, 0.2);
+        var diePlace = new THREE.Mesh(floor_geo, mat_dark);
+		diePlace.castShadow = true;
+        diePlace.receiveShadow = true;
+        diePlace.position.x = 15;
+        diePlace.position.y = 2;
+        diePlace.position.z = 1;
+        scene.add(diePlace);
+        dies.push(diePlace);
+
+        var dieGeometry = new THREE.CubeGeometry(1,1,1);
+        var dieTexture = new THREE.TextureLoader().load( 'die.jpg' );
+        var dieMaterial = new THREE.MeshBasicMaterial( { map: dieTexture } );
+
+        // Different parts of image to different parts of dice
+        var four = [new THREE.Vector2(0.666, 0), new THREE.Vector2(0.666, 0.5), new THREE.Vector2(1, 0.5), new THREE.Vector2(1, 0)];
+        var three = [new THREE.Vector2(0.666, 0.5), new THREE.Vector2(0.666, 1), new THREE.Vector2(1, 1), new THREE.Vector2(1, 0.5)];
+        var five = [new THREE.Vector2(0.333, 0), new THREE.Vector2(0.333, 0.5), new THREE.Vector2(0.666, 0.5), new THREE.Vector2(0.666, 0)];
+        var two = [new THREE.Vector2(0.333, 0.5), new THREE.Vector2(0.333, 1), new THREE.Vector2(0.666, 1), new THREE.Vector2(0.666, 0.5)];
+        var six = [new THREE.Vector2(0, 0), new THREE.Vector2(0, 0.5), new THREE.Vector2(0.333, .5), new THREE.Vector2(0.333, 0)];
+        var one = [new THREE.Vector2(0, 0.5), new THREE.Vector2(0, 1), new THREE.Vector2(0.333, 1), new THREE.Vector2(0.333, 0.5)];
+
+        //clears UV mapping that already existed
+        dieGeometry.faceVertexUvs[0] = [];
+
+
+        dieGeometry.faceVertexUvs[0][0] = [four[0], four[1], four[3]];
+        dieGeometry.faceVertexUvs[0][1] = [four[1], four[2], four[3]];
+
+        dieGeometry.faceVertexUvs[0][2] = [three[0], three[1], three[3]];
+        dieGeometry.faceVertexUvs[0][3] = [three[1], three[2], three[3]];
+
+        dieGeometry.faceVertexUvs[0][4] = [ five[0], five[1], five[3] ];
+        dieGeometry.faceVertexUvs[0][5] = [ five[1], five[2], five[3] ];
+
+        dieGeometry.faceVertexUvs[0][6] = [two[0], two[1], two[3]];
+        dieGeometry.faceVertexUvs[0][7] = [two[1], two[2], two[3]];
+
+          
+        dieGeometry.faceVertexUvs[0][8] = [ six[0], six[1], six[3] ];
+        dieGeometry.faceVertexUvs[0][9] = [ six[1], six[2], six[3] ];
+          
+        dieGeometry.faceVertexUvs[0][10] = [ one[0], one[1], one[3] ];
+        dieGeometry.faceVertexUvs[0][11] = [ one[1], one[2], one[3] ];
+		
+
+        die = new THREE.Mesh(dieGeometry, dieMaterial);
+		die.castShadow = true;
+        die.receiveShadow = true;
+        die.position.x = 15;
+        die.position.y = 2;
+        die.position.z = 1.6;
+
+        scene.add(die);
+
+      
+
+        // Function designed to update each state in the game and handle mouse events
+        function state_update(event) {
+          if (event.type != 'paint') // 1st situation
+          {
+		    
+            for (var i=0; i<pieces.length; i++) {
+              if (pieces[i].color == 'y')
+                pieces[i].material = mat_yellow;
+              if (pieces[i].color == 'g')
+                pieces[i].material = mat_green;
+              if (pieces[i].color == 'r')
+                pieces[i].material = mat_red;
+              if (pieces[i].color == 'b')
+                pieces[i].material = mat_blue;
+            }
+
+            for (var i=0; i<slots.length; i++){
+              if (slots[i].color == 'y')
+                slots[i].material = mat_yellow;
+              if (slots[i].color == 'g')
+                slots[i].material = mat_green;
+              if (slots[i].color == 'r')
+                slots[i].material = mat_red;
+              if (slots[i].color == 'b')
+                slots[i].material = mat_blue;
+              if (slots[i].color == 'c')
+                slots[i].material = mat_clear;
+              if(slots[i].color == 'd')
+                slots[i].material = mat_dark;
+			  if(slots[i].color == 'e')
+			    slots[i].material = mat_center;
+            }
+            
+            diePlace.material = mat_dark;
+
+            updateCursor();
+          }
+
+          
+          if (event.type == 'mousemove') // 2nd situation
+          {
+            intersects = raycaster.intersectObjects(slots);
+            if (intersects.length) {
+    	   
+                intersects[0].object.material = mat_highlight;
+				
+            }
+
+            intersects = raycaster.intersectObjects(pieces);
+	          if (intersects.length) {
+	             
+                intersects[0].object.material = mat_highlight;
+            }
+
+            intersects = raycaster.intersectObjects(dies);
+            if (intersects.length) {
+                diePlace.material = mat_highlight_dupl;
+            }
+          }
+       
+        }
+
+        // Background
+        function loadBackground(){
+          var bckg_loader = new THREE.TextureLoader();
+          var bckg_texture = bckg_loader.load( 'bg2.jpg' );
+          scene.background = bckg_texture;
+        }
+        loadBackground();
+		
+		// Function designed to update each state in the game and handle mouse events
+		window.addEventListener('keydown',onDocumentKeyDown,false);
+        function onDocumentKeyDown(event){
+            var delta = 0.1;
+            event = event || window.event;
+            var keycode = event.keyCode;
+            switch(keycode){
+            case 37 : //left arrow 
+            camera.position.x = camera.position.x - delta;
+            break;
+            case 38 : // up arrow 
+            camera.position.y = camera.position.y + delta;
+            break;
+            case 39 : // right arrow 
+            camera.position.x = camera.position.x + delta;
+            break;
+            case 40 : //down arrow
+            camera.position.y = camera.position.y - delta;
+            break;
+            case 33 : // Page Up key
+            camera.position.z = camera.position.z + delta;
+            break;			
+            case 34 : // Page Down key
+            camera.position.z = camera.position.z - delta;
+            break;		
+            case 90 : // z key
+            camera.rotation.y += 0.1;
+			
+            break;			
+            case 88 : // x key
+            camera.rotation.y -= 0.1;
+            break;	
+            case 65 : // a key
+            camera.rotation.x += 0.1;
+            break;			
+            case 83 : // s key
+            camera.rotation.x -= 0.1;
+            break;				
+            }
+            window.addEventListener('keyup',onDocumentKeyUp,false);
+            }
+
+           camera.position.set(5.5,-5,7.5)
+		   camera.lookAt(look);
+
+		
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+          state_update(new Event('paint'));
+
+          
+		  die.rotation.z += 0.01;
+		  
+		
+
+          renderer.render(scene, camera);
+        }
+
+        window.addEventListener('mousemove', state_update, false);
+        window.addEventListener('mouseup', state_update, false);
+        window.addEventListener('mousedown', state_update, false);
+        animate();
+		
+	 
+
+      </script>
+    </body>
+  </html>
